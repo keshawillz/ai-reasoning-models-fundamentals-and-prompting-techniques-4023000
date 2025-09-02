@@ -16,11 +16,34 @@ client = OpenAI(
     api_key=token
 )
 
+# ---- Model Router ----
+def model_router(goal: str, quality: str):
+    goal_text = goal.lower()
+    wants_accuracy = quality.lower().startswith("a")
+    complex_signals = any(keyword in goal_text for keyword in ["plan", "strategy", "trade-off", "analyze", "debug", "evaluate"])
+    
+    if wants_accuracy or complex_signals:
+        return "o4-mini" #Reasoning model
+    else:
+        return "gpt-4o-mini" #GPT model
+    
+# Collect user goal
+user_goal = input("\nWhat’s your goal or challenge? > ").strip()
+
+if not user_goal:
+    raise ValueError("No goal provided.")
+
+# Ask for quality preference
+quality = input("Optimize for 'speed' or 'accuracy'? [speed]: ").strip() or "speed"
+
+# Route to appropriate model
+model_name = model_router(user_goal, quality)
+print(f"\n--- Using model: {model_name} ---\n")
+
 # ---- Request ----
 try:
     response = client.chat.completions.create(
-        model="o4-mini",
-        reasoning_effort="medium",  # low | medium | high
+        model=model_name,
         messages=[
             {
                 "role": "developer",
@@ -32,9 +55,9 @@ try:
             },
             {
                 "role": "user",
-                "content": "Provide steps I can take to reduce stress during the work week."
+                "content": user_goal
             }
-        ],
+        ]
     )
 
     print("\n--- AI Personal Coach Response ---")
